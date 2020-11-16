@@ -42,42 +42,49 @@ def solve1(n: int, piece: str, r_p: int, c_p: int, obstacles: bytearray):
 
 
 def solve2(n: int, piece: str, r_p: int, c_p: int, obstacles: set):
-    """ Loop over obstacles and check for nearest to each piece in each direction. """
+    """ Loop over obstacles and check for nearest to the piece in each direction. """
+
+    # Initial closest obstacles (board edges)
+    up = right = r_up = l_up = n + 1  # using row for diagonals, hence n+1 (up)
+    down = left = r_down = l_down = 0  # using row for diagonals, hence 0 (down)
+
+    obstacles.remove((r_p, c_p))
+
+    if piece == 'q':
+        for r, c in obstacles:
+            if c == c_p and r > r_p: up = min(up, r)
+            elif c == c_p and r < r_p: down = max(down, r)
+            elif r == r_p and c < c_p: left = max(left, c)
+            elif r == r_p and c > c_p: right = min(right, c)
+            elif r < r_p and c < c_p and r_p-r == c_p-c: l_down = max(l_down, r)
+            elif r < r_p and c > c_p and r_p-r == c-c_p: r_down = max(r_down, r)
+            elif r > r_p and c < c_p and r-r_p == c_p-c: l_up = min(l_up, r)
+            elif r > r_p and c > c_p and r-r_p == c-c_p: r_up = min(r_up, r)
+    elif piece == 'b':
+        for r, c in obstacles:
+            if r < r_p and c < c_p and r_p-r == c_p-c: l_down = max(l_down, r)
+            elif r < r_p and c > c_p and r_p-r == c-c_p: r_down = max(r_down, r)
+            elif r > r_p and c < c_p and r-r_p == c_p-c: l_up = min(l_up, r)
+            elif r > r_p and c > c_p and r-r_p == c-c_p: r_up = min(r_up, r)
+    elif piece == 'r':
+        for r, c in obstacles:
+            if c == c_p and r > r_p: up = min(up, r)
+            elif c == c_p and r < r_p: down = max(down, r)
+            elif r == r_p and c < c_p: left = max(left, c)
+            elif r == r_p and c > c_p: right = min(right, c)
 
     squares = 0
-
     if piece in ('q', 'r'):
-        # Up
-        up = min([r for r, c in obstacles if c==c_p and r>r_p], default=n+1)
-        squares += up - r_p - 1
-        # Down
-        down = max([r for r, c in obstacles if c==c_p and r<r_p], default=0)
-        squares += r_p - down - 1
-        #Left
-        left = max([c for r, c in obstacles if r==r_p and c<c_p], default=0)
-        squares += c_p - left - 1
-        #Right
-        right = min([c for r, c in obstacles if r==r_p and c>c_p], default=n+1)
-        squares += right - c_p - 1
-
+        squares += ((up - r_p - 1) + (r_p - down - 1)
+                    + (right - c_p - 1) + (c_p - left - 1))
     if piece in ('q', 'b'):
-        #Left-down
-        l_down = max([r for r, c in obstacles if r<r_p and c<c_p and r_p-r == c_p-c],
-                        default=0)
-        squares += min(r_p-l_down, c_p) - 1
-        #right-down
-        r_down = max([r for r, c in obstacles if r<r_p and c>c_p and r_p-r == c-c_p],
-                        default=0)
-        squares += min(r_p-r_down, n+1-c_p) - 1
-        #Left-up
-        l_up = min([r for r, c in obstacles if r>r_p and c<c_p and r-r_p == c_p-c],
-                        default=n+1)
-        squares += min(l_up-r_p, c_p) - 1
-        #right-up
-        r_up = min([r for r, c in obstacles if r>r_p and c>c_p and r-r_p == c-c_p],
-                        default=n+1)
-        squares += min(r_up-r_p, n+1-c_p) - 1
+        # For the diagonals, when there's no obstacle,
+        # the correct number of squares is the minimum distance
+        # to either egde of the board
+        squares += (min(r_up-r_p, n+1-c_p) - 1 + min(r_p-r_down, n+1-c_p) - 1
+                    + min(l_up-r_p, c_p) - 1 + min(r_p-l_down, c_p) - 1)
 
+    obstacles.add((r_p, c_p))
     return squares
 
 
@@ -140,8 +147,8 @@ if __name__ == "__main__":
             obstacles[n*(r - 1) + c-1] = 0
         for r, c in positions:
             obstacles[n*(r - 1) + c-1] = 0
-    elif k + p-1 < total_squares(n, pieces, positions) / p**2:
-        # Less obstacles than "square-average" number of squares on the pieces' paths
+    elif k + p-1 < total_squares(n, pieces, positions):
+        # Less obstacles than average number of squares on the pieces' paths
         method = 2
         obstacles = {tuple(map(int,input().split())) for _ in range(k)}
         obstacles.update(positions)
